@@ -2,15 +2,15 @@ package webapp
 
 import (
   "../filestore"
-  "encoding/base64"
-  "crypto/sha256"
   "bytes"
+  "crypto/sha256"
   "database/sql"
+  "encoding/base64"
   "errors"
   "fmt"
-  "io"
   _ "github.com/go-sql-driver/mysql"
   "html/template"
+  "io"
   "io/ioutil"
   "log"
   "math/rand"
@@ -273,7 +273,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
         hash = base64.StdEncoding.EncodeToString(h.Sum(nil))
       }
     }
-    if password_rec[0] == hash && hash != "" {
+    if password_rec[0] == hash && hash != "" && password != "" {
       sessions.Write(p.Session, username)
       Redirect(w, r, return_url)
       log.Printf("[%s] Login\n", username)
@@ -385,13 +385,13 @@ func User(username string) Record {
   user_rec := strings.Split(users.Read(username), ",")
   for i, v := range user_rec {
     switch i {
-      case 0:
-        result["first_name"] = v
-      case 1:
-        result["last_name"] = v
-      case 2:
-        result["email"] = v
-    } 
+    case 0:
+      result["first_name"] = v
+    case 1:
+      result["last_name"] = v
+    case 2:
+      result["email"] = v
+    }
   }
   return result
 }
