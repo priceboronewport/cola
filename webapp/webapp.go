@@ -81,8 +81,9 @@ func ContentType(filename string) string {
   return mime_type
 }
 
-func DocumentRoot(host string) string {
-  result := Config.Read("document_root:" + host)
+func DocumentRoot(host string) (result string) {
+  host = IfEmpty(Config.Read("alias:" + host), host)
+  result = Config.Read("document_root:" + host)
   if result == "" {
     result = Config.Read("document_root")
   }

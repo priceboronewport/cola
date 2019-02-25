@@ -1,0 +1,3 @@
+# permission=role1,role2,...
+permission1=admin
+permission2=everybody
