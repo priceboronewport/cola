@@ -9,6 +9,7 @@ import (
   "errors"
   "fmt"
   _ "github.com/go-sql-driver/mysql"
+  "html"
   "html/template"
   "io"
   "io/ioutil"
@@ -18,6 +19,7 @@ import (
   "net/url"
   "os"
   "path/filepath"
+  "strconv"
   "strings"
   "time"
 )
@@ -35,6 +37,15 @@ type HandlerParams struct {
   Username string
 }
 
+type RenderTableParams struct {
+  ColClasses map[string]string
+  ColLinks   map[string]string
+  FilterCols string
+  HeaderRows int
+  HiddenCols string
+  HtmlCols   string
+}
+
 type HandlerFunc func(http.ResponseWriter, *http.Request, HandlerParams)
 
 var DB *sql.DB
@@ -44,6 +55,8 @@ var handlers map[string]HandlerFunc
 var require_auths map[string]bool
 var Config DataStore
 var data_path string
+var permissions DataStore
+var user_roles DataStore
 
 const NullUser = "_"
 
@@ -58,6 +71,15 @@ func ConfigFilename(config_path string) string {
   return result
 }
 
+func Contains(s []string, v string) bool {
+  for _, c := range s {
+    if c == v {
+      return true
+    }
+  }
+  return false
+}
+
 func ContentType(filename string) string {
   mime_types := filestore.New(data_path + "mime_types.fs")
   ext := strings.ToLower(filepath.Ext(filename))
@@ -66,14 +88,14 @@ func ContentType(filename string) string {
     mime_type = mime_types.Read(ext[1:])
   }
   if mime_type == "" {
-    f, e := os.Open(filename)
-    if e != nil {
+    f, err := os.Open(filename)
+    if err != nil {
       return ""
     }
     defer f.Close()
     buffer := make([]byte, 512)
-    n, e := f.Read(buffer)
-    if e != nil {
+    n, err := f.Read(buffer)
+    if err != nil {
       return ""
     }
     mime_type = http.DetectContentType(buffer[:n])
@@ -82,18 +104,12 @@ func ContentType(filename string) string {
 }
 
 func DocumentRoot(host string) (result string) {
-  host = IfEmpty(Config.Read("alias:" + host), host)
-  result = Config.Read("document_root:" + host)
-  if result == "" {
-    result = Config.Read("document_root")
-  }
-  if result == "" {
-    result = "."
-  }
+  host = Config.Read("alias:"+host, host)
+  result = Config.Read("document_root:"+host, Config.Read("document_root", "."))
   if result[len(result)-1:] != "/" {
-    return result + "/"
+    result += "/"
   }
-  return result
+  return
 }
 
 func GetSession(w http.ResponseWriter, r *http.Request) string {
@@ -135,6 +151,8 @@ func ListenAndServe(config_path string) {
   data_path = Config.Read("data_path", "./data/")
   sessions = filestore.New(data_path + "sessions.fs")
   session_values = filestore.New(data_path + "session_values.fs")
+  permissions = filestore.New(data_path + "permissions.fs")
+  user_roles = filestore.New(data_path + "user_roles.fs")
   if _, err := os.Stat(data_path + "sessions.fs"); os.IsNotExist(err) {
     panic(errors.New(data_path + "sessions.fs missing"))
   }
@@ -168,12 +186,18 @@ func ListenAndServe(config_path string) {
   log.Fatal(err)
 }
 
+func LogError(err error, source string) {
+  if err != nil {
+    log.Printf(" ** ERROR: %s: %s: %s\n", source, err.Error())
+  }
+}
+
 func Handler(w http.ResponseWriter, r *http.Request) {
-  if r.TLS == nil && Config.Read("require_tls:"+r.Host, Config.Read("require_tls")) != "" {
+  if r.TLS == nil && Config.Read("require_tls:"+r.Host) != "" {
     Redirect(w, r, "https://"+r.Host+r.URL.String())
     return
   }
-  server_name := Config.Read(r.Host, r.Host)
+  alias := Config.Read("alias:" + r.Host)
   timestamp := time.Now().Format("2006-01-02 15:04:05")
   instance := fmt.Sprintf("%s %p", timestamp, &timestamp)
   session := GetSession(w, r)
@@ -196,14 +220,18 @@ func Handler(w http.ResponseWriter, r *http.Request) {
       } else {
         branch = domain_branch
       }
-      if (len(rurl) >= len(branch)) && (rurl[:len(branch)] == branch) && ((server_name == domain) || (domain == "")) {
+      if (len(rurl) >= len(branch)) && (rurl[:len(branch)] == branch) && ((r.Host == domain) || (domain == "") || (alias == domain)) {
         if len(branch) > candidate_l {
           candidate_f = f
           candidate_l = len(branch)
         }
       }
     }
-    log.Printf("[%s] [%s] [%s] [%s]\n", username, r.RemoteAddr, server_name, rurl)
+    if alias == "" {
+      log.Printf("[%s] [%s] [%s] [%s]\n", username, r.RemoteAddr, r.Host, rurl)
+    } else {
+      log.Printf("[%s] [%s] [%s->%s] [%s]\n", username, r.RemoteAddr, r.Host, alias, rurl)
+    }
     if candidate_f != nil {
       if require_auths[fmt.Sprintf("%p", candidate_f)] && username == "" {
         Redirect(w, r, "/login?return="+url.QueryEscape(rurl))
@@ -211,9 +239,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
       candidate_f(w, r, HandlerParams{Session: session, Instance: instance, Username: username})
       return
     } else {
-      w.WriteHeader(http.StatusNotFound)
-      fmt.Fprint(w, "Not Found")
-      log.Printf("webapp.Handler: 404 - Not Found: [%s]\n", r.URL.String())
+      log.Printf("webapp.Handler: Ignored: [%s]\n", r.URL.String())
       return
     }
   }
@@ -234,6 +260,25 @@ func HandlerExists(query_domain string, query_branch string) bool {
       return true
     }
   }
+  return false
+}
+
+func HasPermission(username string, permission string) bool {
+  roles := strings.Split(permissions.Read(permission), ",")
+  if len(roles) < 2 {
+    permissions.Write(permission, "admin")
+    roles = append(roles, "admin")
+  }
+  ur := strings.Split(user_roles.Read(username), ",")
+  for _, r := range roles {
+    for _, c := range ur {
+      if c == r {
+        log.Printf("Permission Granted: [%s] for [%s] through [%s]\n", username, permission, r)
+        return true
+      }
+    }
+  }
+  log.Printf("Permission Denied: [%s] for [%s]\n", username, permission)
   return false
 }
 
@@ -304,6 +349,46 @@ func Trunc(s string, d string) string {
   return s
 }
 
+func Query(sql string) (string, error) {
+  var result string
+  r, err := DB.Query(sql)
+  LogError(err, "webapp.Query: "+sql)
+  if err == nil {
+    defer r.Close()
+    r.Next()
+    err = r.Scan(&result)
+  }
+  if err != nil {
+    log.Printf(" ** ERROR: cola.Query: %s on %s\n", err.Error(), sql)
+    return "", err
+  }
+  return result, nil
+}
+
+func QueryRecord(query string) (Record, error) {
+  var result Record
+  result = make(map[string]string)
+  rows, err := DB.Query(query)
+  LogError(err, "webapp.QueryRecord: "+query)
+  if err == nil {
+    defer rows.Close()
+    columns, err := rows.Columns()
+    if err == nil {
+      count := len(columns)
+      values := make([]interface{}, count)
+      for i := 0; i < count; i++ {
+        values[i] = new(sql.RawBytes)
+      }
+      rows.Next()
+      rows.Scan(values...)
+      for i, name := range columns {
+        result[name] = string(*values[i].(*sql.RawBytes))
+      }
+    }
+  }
+  return result, err
+}
+
 func Redirect(w http.ResponseWriter, r *http.Request, url string) {
   http.Redirect(w, r, url, http.StatusFound)
 }
@@ -331,6 +416,116 @@ func Render(w http.ResponseWriter, template_filename string, render_params inter
   } else {
     log.Printf("webapp.Render.template.ParseFiles: %s\n", err.Error())
   }
+}
+
+func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
+  hidden_cols := strings.Split(p.HiddenCols, ",")
+  filter_cols := strings.Split(p.FilterCols, ",")
+  html_cols := strings.Split(p.HtmlCols, ",")
+  result := "<table id='" + id + "' class='default multi_hl sortable'><thead><tr>"
+  columns, _ := rows.Columns()
+  for _, name := range columns {
+    if !Contains(hidden_cols, name) {
+      result += "<th"
+      if p.ColClasses != nil {
+        if p.ColClasses[name] == "" {
+          p.ColClasses[name] = p.ColClasses["default"]
+        }
+        if p.ColClasses[name] != "" {
+          result += " class='" + p.ColClasses[name] + "'"
+        }
+      }
+      result += " onClick='tsrt.Sort(this)'>" + html.EscapeString(name) + "</th>"
+    }
+  }
+  result += "</tr>"
+  if len(filter_cols) > 1 {
+    result += "<tr>"
+    first_col := true
+    for _, name := range columns {
+      if !Contains(hidden_cols, name) {
+        result += "<td class='filter'>"
+        if first_col {
+          result += "<div style='white-space: nowrap; text-align: center;'><button onClick='return tfltr.Apply(this)'><img src='/res/img/tfltr_apply.png' alt='Apply Filter'/></button>"
+          result += "<button onClick='return tfltr.Reset(this)'><img src='/res/img/tfltr_reset.png' alt='Reset Filter'/></button></div>"
+          first_col = false
+        }
+        if Contains(filter_cols, name) {
+          result += "<input onKeyPress='return tfltr.KeyPress(this,event)' type='text' size='2'/>"
+        }
+        result += "</td>"
+      }
+    }
+    result += "</tr>"
+  }
+  count := len(columns)
+  col_values := make([]string, count)
+  values := make([]interface{}, count)
+  value_ptrs := make([]interface{}, count)
+  row_count := 0
+  for rows.Next() {
+    if row_count == p.HeaderRows {
+      result += "</thead><tbody>"
+    }
+    row_count++
+    result += "<tr onClick='thl.Toggle(this)'>"
+    for i, _ := range columns {
+      value_ptrs[i] = &values[i]
+    }
+    rows.Scan(value_ptrs...)
+    for i, name := range columns {
+      val := values[i]
+      s := ""
+      b, ok := val.([]byte)
+      if ok {
+        s = string(b)
+      }
+      col_values[i] = s
+      if !Contains(hidden_cols, name) {
+        result += "<td"
+        var classes string
+        if p.ColClasses != nil {
+          classes = p.ColClasses[name]
+        }
+        if len(s) > 1 && (s[0:1] == "-" || s[1:2] == "-") {
+          if classes != "" {
+            classes += " "
+          }
+          classes += "neg"
+        }
+        if classes != "" {
+          result += " class='" + classes + "'"
+        }
+        result += ">"
+        if p.ColLinks != nil && p.ColLinks[name] != "" && row_count > p.HeaderRows {
+          url := strings.Replace(p.ColLinks[name], "{}", s, -1)
+          for j := 0; j < i; j++ {
+            url = strings.Replace(url, "{"+strconv.Itoa(j)+"}", col_values[j], -1)
+          }
+          if (len(s) > 9) && (s[2:3] == "/") {
+            result += "<!-- " + html.EscapeString(s[6:10]+s[0:2]+s[3:5]) + " --><a href='" + url + "'>"
+          } else {
+            result += "<!-- " + html.EscapeString(s) + " --><a href='" + url + "'>"
+          }
+        }
+        if Contains(html_cols, name) {
+          result += s
+        } else {
+          result += html.EscapeString(s)
+        }
+        if p.ColLinks != nil && p.ColLinks[name] != "" {
+          result += "</a>"
+        }
+        result += "</td>"
+      }
+    }
+    result += "</tr>"
+  }
+  if row_count < p.HeaderRows {
+    result += "</thead>"
+  }
+  result += "</tbody></table>"
+  return result
 }
 
 func Script(url string) string {

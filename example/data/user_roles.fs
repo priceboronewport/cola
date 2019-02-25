@@ -1,2 +1,2 @@
-# user=role1,role2,role3
+# user=role1,role2,...
 test=admin,everyone
