@@ -103,9 +103,9 @@ func (fv *FileVault) Extract(file_id int, filename string) (dest_filename string
   return
 }
 
-func (fv *FileVault) FileId(filename string) (file_id int, err error) {
+func (fv *FileVault) FileId(filename string, hash string) (file_id int, err error) {
   fpath, fname := filepath.Split(filename)
-  if rows, err := fv.db.Query("select file_id from files where path=? and name=? order by timestamp desc, file_id desc limit 1", fpath, fname); err == nil {
+  if rows, err := fv.db.Query("select file_id from files inner join hashes using hash_id where hash=? and path=? and name=? order by timestamp desc, file_id desc limit 1", hash, fpath, fname); err == nil {
     defer rows.Close()
     if rows.Next() {
       rows.Scan(&file_id)
@@ -148,6 +148,9 @@ func (fv *FileVault) Import(filename string, path string, timestamp time.Time) (
   if hash, err = fv.Hash(path); err != nil {
     return
   }
+  if file_id, _ = fv.FileId(path, hash); file_id != 0 {
+    return
+  }
   var hash_id int
   if hash_id, err = fv.HashId(hash); err != nil {
     return
@@ -169,7 +172,7 @@ func (fv *FileVault) Import(filename string, path string, timestamp time.Time) (
   } 
   fpath, fname := filepath.Split(path)
   fv.db.Exec("insert into files(hash_id, path, name, timestamp) values(?,?,?,?)", hash_id, fpath, fname, timestamp)
-  if file_id, err = fv.FileId(path); err != nil {
+  if file_id, err = fv.FileId(path, hash); err != nil {
     return
   }
   var reg *regexp.Regexp
