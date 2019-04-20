@@ -15,12 +15,12 @@ import (
 )
 
 type FileInfo struct {
-  FileID    int
-  Path      string
-  Name      string
-  Size      int64
-  Timestamp time.Time
-  Hash      string
+    FileID    int
+    Path      string
+    Name      string
+    Size      int64
+    Timestamp time.Time
+    Hash      string
 }
 
 type FileVault struct {
@@ -81,7 +81,7 @@ func copyFileContents(src, dst string) (err error) {
 }
 
 func New(db *sql.DB, root string) *FileVault {
-    fv := FileVault{db: db, root: root, QueryLimit: 500}
+    fv := FileVault{db: db, root: root, QueryLimit: 0}
     return &fv
 }
 
@@ -203,19 +203,19 @@ func (fv *FileVault) HashId(hash string, size int64) (hash_id int, err error) {
 }
 
 func (fv *FileVault) Info(file_id int) (fi FileInfo, err error) {
-  var rows *sql.Rows
-  rows, err = fv.db.Query("select file_id, path, name, timestamp, size, hash from files inner join hashes using(hash_id) where file_id=?", file_id)
-  if err == nil {
-    defer rows.Close()
-    if rows.Next() {
-      var timestamp string
-      err = rows.Scan(&fi.FileID, &fi.Path, &fi.Name, &timestamp, &fi.Size, &fi.Hash)
-      fi.Timestamp, err = time.Parse("2006-01-02 15:04:05", timestamp)
-    } else {
-       err = errors.New("Invalid file_id")
+    var rows *sql.Rows
+    rows, err = fv.db.Query("select file_id, path, name, timestamp, size, hash from files inner join hashes using(hash_id) where file_id=?", file_id)
+    if err == nil {
+        defer rows.Close()
+        if rows.Next() {
+            var timestamp string
+            err = rows.Scan(&fi.FileID, &fi.Path, &fi.Name, &timestamp, &fi.Size, &fi.Hash)
+            fi.Timestamp, err = time.Parse("2006-01-02 15:04:05", timestamp)
+        } else {
+            err = errors.New("Invalid file_id")
+        }
     }
-  }
-  return
+    return
 }
 
 func (fv *FileVault) Init() (err error) {
@@ -296,6 +296,23 @@ func (fv *FileVault) Import(filename string, path string, timestamp time.Time) (
     return
 }
 
+func (fv *FileVault) ListPath(path string) (file_ids []int, names []string, err error) {
+    query := "select file_id, name from files where path=? order by name, file_id desc"
+    var rows *sql.Rows
+    rows, err = fv.db.Query(query, path)
+    if err == nil {
+        defer rows.Close()
+        var file_id int
+        var name string
+        for rows.Next() {
+            rows.Scan(&file_id, &name)
+            file_ids = append(file_ids, file_id)
+            names = append(names, name)
+        }
+    }
+    return
+}
+
 func (fv *FileVault) Query(terms string) (file_ids []int, filenames []string, err error) {
 
     // Parse terms into list of words
@@ -330,7 +347,10 @@ func (fv *FileVault) Query(terms string) (file_ids []int, filenames []string, er
     for i := 1; i < len(words); i++ {
         query += ")"
     }
-    query += " order by file_id desc limit " + strconv.Itoa(fv.QueryLimit)
+    query += " order by file_id desc"
+    if fv.QueryLimit != 0 {
+      query += " limit " + strconv.Itoa(fv.QueryLimit)
+    }
 
     // Execute query & fetch results
     var rows *sql.Rows
@@ -346,8 +366,10 @@ func (fv *FileVault) Query(terms string) (file_ids []int, filenames []string, er
         }
     }
 
-    if len(file_ids) == fv.QueryLimit {
-        err = errors.New("Query results truncated at " + strconv.Itoa(fv.QueryLimit) + ".")
+    if fv.QueryLimit != 0 {
+      if len(file_ids) == fv.QueryLimit {
+          err = errors.New("Query results truncated at " + strconv.Itoa(fv.QueryLimit) + ".")
+      }
     }
     return
 }
@@ -366,6 +388,10 @@ func (fv *FileVault) QueryFilename(filename string) (file_ids []int, err error) 
         }
     }
     return
+}
+
+func (fv *FileVault) SetQueryLimit(query_limit int) {
+  fv.QueryLimit = query_limit
 }
 
 func (fv *FileVault) StoreFile(filename string, hash_id int) (err error) {
