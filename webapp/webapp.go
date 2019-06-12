@@ -172,18 +172,26 @@ func ListenAndServe(config_path string) {
 	}
 	fmt.Printf("Listening...\n")
 	http.HandleFunc("/", Handler)
+        address := Config.Read("address")
 	tls_address := Config.Read("tls_address")
 	if tls_address != "" {
 		tls_cert := Config.Read("tls_cert")
 		tls_key := Config.Read("tls_key")
-		go func() {
-			fmt.Printf("Listening TLS...\n")
+		if address != "" {
+			go func() {
+				fmt.Printf("Listening TLS...\n")
+				err := http.ListenAndServeTLS(tls_address, tls_cert, tls_key, nil)
+				log.Fatal(err)
+			}()
+		} else {
 			err := http.ListenAndServeTLS(tls_address, tls_cert, tls_key, nil)
 			log.Fatal(err)
-		}()
+		}
 	}
-	err := http.ListenAndServe(Config.Read("address"), nil)
-	log.Fatal(err)
+	if address != "" {
+		err := http.ListenAndServe(Config.Read("address"), nil)
+		log.Fatal(err)
+	}
 }
 
 func LogError(err error, source string) {
