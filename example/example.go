@@ -1,3 +1,10 @@
+/*
+ *  example - Sample web application using Cola webapp framework.
+ *
+ *  Copyright (c) 2019  Priceboro Newport, Inc.  All Rights Reserved.
+ *
+ */
+
 package main
 
 import (

@@ -1,3 +1,10 @@
+/*
+ *  webapp - Cola web application framework.
+ *
+ *  Copyright (c) 2019  Priceboro Newport, Inc.  All Rights Reserved.
+ *
+ */
+
 package webapp
 
 import (

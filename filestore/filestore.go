@@ -1,3 +1,10 @@
+/*
+ *  filestore - Filestore API.
+ *
+ *  Copyright (c) 2019  Priceboro Newport, Inc.  All Rights Reserved.
+ *
+ */
+
 package filestore
 
 import (
