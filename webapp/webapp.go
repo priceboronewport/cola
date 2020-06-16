@@ -179,7 +179,7 @@ func ListenAndServe(config_path string) {
 	}
 	fmt.Printf("Listening...\n")
 	http.HandleFunc("/", Handler)
-        address := Config.Read("address")
+	address := Config.Read("address")
 	tls_address := Config.Read("tls_address")
 	if tls_address != "" {
 		tls_cert := Config.Read("tls_cert")
@@ -431,6 +431,12 @@ func Render(w http.ResponseWriter, template_filename string, render_params inter
 	} else {
 		log.Printf("webapp.Render.template.ParseFiles: %s\n", err.Error())
 	}
+}
+
+func RenderIncrementalSearch(id, width, height string) (html string) {
+	html += "<input id='" + id + "' onBlur='is_blur(this)' onKeypress='is_change(this)' type='text'/><br/>"
+	html += "<div id='" + id + "_pulldown' tabindex='-1' style='height: " + height + "px; width: " + width + "x' class='is_pulldown'></div>"
+	return
 }
 
 func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {

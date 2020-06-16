@@ -1,0 +1,5 @@
+div.list { position: absolute; display: none; overflow: scroll; background-color: #171717; }
+div.list button { margin: 0px; text-align: left; height: 30px; font-size: 12pt; color: #DDDDDD; border: none; background-color: #171717; width: 100%; }
+div.list button:hover { background-color: #e20074; }
+div.list button:active { background-color: #e20074; }
+div.list button:focus { background-color: #e20074; }
