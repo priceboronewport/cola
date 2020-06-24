@@ -63,6 +63,7 @@ var require_auths map[string]bool
 var Config DataStore
 var data_path string
 var permissions DataStore
+var Protocol string
 var user_roles DataStore
 
 const NullUser = "_"
@@ -211,6 +212,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	if r.TLS == nil && Config.Read("require_tls:"+r.Host) != "" {
 		Redirect(w, r, "https://"+r.Host+r.URL.String())
 		return
+	}
+	if r.TLS != nil {
+		Protocol = "https://"
+	} else {
+		Protocol = "http://"
 	}
 	alias := Config.Read("alias:" + r.Host)
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
