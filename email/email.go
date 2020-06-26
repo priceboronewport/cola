@@ -2,8 +2,10 @@ package email
 
 import (
 	"../tempfile"
+	"bytes"
 	"errors"
 	"fmt"
+	"mime/quotedprintable"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,12 +16,35 @@ type Email struct {
 	Content string
 }
 
+func listContains(list []string, target string) bool {
+	for _, v := range list {
+		if strings.ToLower(v) == target {
+			return true
+		}
+	}
+	return false
+}
+
 func New() *Email {
 	em := Email{Headers: make(map[string]string), Content: ""}
 	em.Headers["MIME-Version"] = "1.0"
 	em.Headers["Content-Transfer-Encoding"] = "quoted-printable"
 	em.Headers["Content-Disposition"] = "inline"
 	return &em
+}
+
+func QuotedPrintable(s string) (string, error) {
+	var ac bytes.Buffer
+	w := quotedprintable.NewWriter(&ac)
+	_, err := w.Write([]byte(s))
+	if err != nil {
+		return "", err
+	}
+	err = w.Close()
+	if err != nil {
+		return "", err
+	}
+	return ac.String(), nil
 }
 
 func (em *Email) SaveToFile(filename string) (err error) {
@@ -48,6 +73,25 @@ func (em *Email) Send(address_list string) (err error) {
 		_, err = cmd.CombinedOutput()
 	} else {
 		err = errors.New("No Addresses")
+	}
+	return
+}
+
+func (em *Email) SendWhitelist(white_list []string) (err error) {
+	address_list := strings.Split(em.Addresses(), ",")
+	var send_list string
+	for _, v := range address_list {
+		if listContains(white_list, v) {
+			if send_list != "" {
+				send_list += ","
+			}
+			send_list += v
+		}
+	}
+	if send_list != "" {
+		err = em.Send(send_list)
+	} else {
+		err = errors.New("No white_list addresses")
 	}
 	return
 }

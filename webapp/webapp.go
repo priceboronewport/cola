@@ -321,7 +321,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
 	if action == "Login" {
 		username := strings.ToLower(r.Form.Get("username"))
 		password := r.Form.Get("password")
-		return_url := IfEmpty(r.Form.Get("return_url"), "/")
+		return_url := IfEmpty(SessionValuesRead(p, "login.return_url"), "/")
 		passwords := filestore.New(data_path + "/passwords.fs")
 		password_rec := strings.Split(passwords.Read(username), ",")
 		var hash string
@@ -350,6 +350,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
 		Render(w, "login.html", LoginParams{ReturnURL: return_url, ErrorMessage: "Login Failed"})
 	} else {
 		return_url := IfEmpty(r.URL.Query().Get("return"), "/")
+		SessionValuesWrite(p, "login.return_url", return_url)
 		Render(w, "login.html", LoginParams{ReturnURL: return_url, ErrorMessage: ""})
 	}
 }
@@ -559,8 +560,14 @@ func Script(url string) string {
 	return "<script type='text/javascript' src='" + url + "'></script>"
 }
 
-func SessionValuesRead(p HandlerParams, key string) string {
-	return session_values.Read(p.Session + "_" + key)
+func SessionValuesRead(p HandlerParams, keys ...string) (result string) {
+	if len(keys) > 0 {
+		result = session_values.Read(p.Session + "_" + keys[0])
+		if len(keys) > 1 && result == "" {
+			result = keys[1]
+		}
+	}
+	return
 }
 
 func SessionValuesWrite(p HandlerParams, key string, value string) (err error) {
