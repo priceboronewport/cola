@@ -63,7 +63,6 @@ var require_auths map[string]bool
 var Config DataStore
 var data_path string
 var permissions DataStore
-var Protocol string
 var user_roles DataStore
 
 const NullUser = "_"
@@ -213,11 +212,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		Redirect(w, r, "https://"+r.Host+r.URL.String())
 		return
 	}
-	if r.TLS != nil {
-		Protocol = "https://"
-	} else {
-		Protocol = "http://"
-	}
 	alias := Config.Read("alias:" + r.Host)
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	instance := fmt.Sprintf("%s %p", timestamp, &timestamp)
@@ -286,7 +280,7 @@ func HandlerExists(query_domain string, query_branch string) bool {
 
 func HasPermission(username string, permission string) bool {
 	roles := strings.Split(permissions.Read(permission), ",")
-	if len(roles) < 2 {
+	if len(roles) < 1 {
 		permissions.Write(permission, "admin")
 		roles = append(roles, "admin")
 	}
@@ -362,6 +356,15 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
 		return_url = "/"
 	}
 	Redirect(w, r, return_url)
+}
+
+func Protocol(r *http.Request) (protocol string) {
+	if r.TLS != nil {
+		protocol = "https://"
+	} else {
+		protocol = "http://"
+	}
+	return
 }
 
 func Trunc(s string, d string) string {

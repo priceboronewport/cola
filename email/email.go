@@ -18,7 +18,7 @@ type Email struct {
 
 func listContains(list []string, target string) bool {
 	for _, v := range list {
-		if strings.ToLower(v) == target {
+		if strings.ToLower(v) == strings.ToLower(target) {
 			return true
 		}
 	}
@@ -71,6 +71,7 @@ func (em *Email) Send(address_list string) (err error) {
 		command := fmt.Sprintf("cat \"%s\"|/usr/sbin/sendmail -O DeliveryMode=b \"%s\"", tf.Filename, address_list)
 		cmd := exec.Command("sh", "-c", command)
 		_, err = cmd.CombinedOutput()
+		fmt.Printf("eamil.Send('%s')\n", address_list)
 	} else {
 		err = errors.New("No Addresses")
 	}
@@ -86,12 +87,12 @@ func (em *Email) SendWhitelist(white_list []string) (err error) {
 				send_list += ","
 			}
 			send_list += v
+		} else {
+			fmt.Printf("email.SendWhitelist(%v): Excluded %s\n", white_list, v)
 		}
 	}
 	if send_list != "" {
 		err = em.Send(send_list)
-	} else {
-		err = errors.New("No white_list addresses")
 	}
 	return
 }
