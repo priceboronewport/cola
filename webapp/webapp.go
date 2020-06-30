@@ -250,6 +250,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		if candidate_f != nil {
 			if require_auths[fmt.Sprintf("%p", candidate_f)] && username == "" {
 				Redirect(w, r, "/login?return="+url.QueryEscape(rurl))
+                return
 			}
 			candidate_f(w, r, HandlerParams{Session: session, Instance: instance, Username: username})
 			return
