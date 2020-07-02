@@ -465,7 +465,7 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 				}
 				if p.ColClasses[name] != "" {
 					result += " class='" + p.ColClasses[name] + "'"
-				}
+			}
 			}
 			result += " onClick='tsrt.Sort(this)'>" + html.EscapeString(name) + "</th>"
 		}
@@ -478,8 +478,10 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 			if !Contains(hidden_cols, name) {
 				result += "<td class='filter'>"
 				if first_col {
-					result += "<div style='white-space: nowrap; text-align: center;'><button onClick='return tfltr.Apply(this)'><img src='/res/img/tfltr_apply.png' alt='Apply Filter'/></button>"
-					result += "<button onClick='return tfltr.Reset(this)'><img src='/res/img/tfltr_reset.png' alt='Reset Filter'/></button></div>"
+					result += "<div style='white-space: nowrap; text-align: center;'>"
+                    result += "<button class='apply hint' onClick='return tfltr.Apply(this)'><span class='hinttext'>Apply Filter</span></button>"
+					result += "<button class='reset hint' onClick='return tfltr.Reset(this)'><span class='hinttext'>Clear Filter</span></button>"
+                    result += "</div>"
 					first_col = false
 				}
 				if Contains(filter_cols, name) {
