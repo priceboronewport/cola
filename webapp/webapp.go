@@ -250,7 +250,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		if candidate_f != nil {
 			if require_auths[fmt.Sprintf("%p", candidate_f)] && username == "" {
 				Redirect(w, r, "/login?return="+url.QueryEscape(rurl))
-                return
+				return
 			}
 			candidate_f(w, r, HandlerParams{Session: session, Instance: instance, Username: username})
 			return
@@ -303,6 +303,10 @@ func IfEmpty(str string, defstr string) string {
 		return defstr
 	}
 	return str
+}
+
+func Icon(url string) string {
+	return "<link rel='icon' href='" + url + "'/>"
 }
 
 type LoginParams struct {
@@ -465,7 +469,7 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 				}
 				if p.ColClasses[name] != "" {
 					result += " class='" + p.ColClasses[name] + "'"
-			}
+				}
 			}
 			result += " onClick='tsrt.Sort(this)'>" + html.EscapeString(name) + "</th>"
 		}
@@ -479,9 +483,9 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 				result += "<td class='filter'>"
 				if first_col {
 					result += "<div style='white-space: nowrap; text-align: center;'>"
-                    result += "<button class='apply hint' onClick='return tfltr.Apply(this)'><span class='hinttext'>Apply Filter</span></button>"
+					result += "<button class='apply hint' onClick='return tfltr.Apply(this)'><span class='hinttext'>Apply Filter</span></button>"
 					result += "<button class='reset hint' onClick='return tfltr.Reset(this)'><span class='hinttext'>Clear Filter</span></button>"
-                    result += "</div>"
+					result += "</div>"
 					first_col = false
 				}
 				if Contains(filter_cols, name) {
