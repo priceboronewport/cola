@@ -1,4 +1,5 @@
 function UIMenuShow(content) {
+  window.scrollTo(0,0);
   document.getElementById(content).classList.toggle("ui_menu_show");
 }
 
