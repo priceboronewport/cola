@@ -2,6 +2,7 @@ package ui
 
 import (
 	".."
+	"../../element"
 	"bytes"
 	"fmt"
 	"html"
@@ -32,11 +33,15 @@ func New(w http.ResponseWriter, r *http.Request, p webapp.HandlerParams, title, 
 	head := "<title>" + html.EscapeString(title) + "</title>"
 	if icon != "" {
 		head += webapp.Icon(icon)
-		head += webapp.Stylesheet("/res/css/ui.css")
-		head += webapp.Script("/res/js/ui.js")
 	}
+	head += webapp.Stylesheet("/res/css/ui.css")
+	head += webapp.Script("/res/js/ui.js")
 	pg := Page{Head: head, W: w, R: r, P: p}
 	return &pg
+}
+
+func (pg *Page) AddHeaderGlyph(src string) {
+	pg.header += "<td><div class='icon' style='background-image: url(\"" + src + "\")'></div></td>"
 }
 
 func (pg *Page) AddHeaderIcon(src string, url string) {
@@ -53,6 +58,32 @@ func (pg *Page) AddHeaderLabel(label string, url string) {
 	} else {
 		pg.header += "<td><a href='" + url + "'>" + html.EscapeString(label) + "</a></td>"
 	}
+}
+
+func (pg *Page) AddScript(url string) (err error) {
+	elements, err := element.Parse(pg.Head)
+	if err == nil {
+		for _, e := range elements {
+			if e.Tag == "script" && e.Attributes["src"] == url {
+				return
+			}
+		}
+		pg.Head += webapp.Script(url)
+	}
+	return
+}
+
+func (pg *Page) AddStylesheet(url string) (err error) {
+	elements, err := element.Parse(pg.Head)
+	if err == nil {
+		for _, e := range elements {
+			if e.Tag == "link" && e.Attributes["rel"] == "stylesheet" && e.Attributes["href"] == url {
+				return
+			}
+		}
+		pg.Head += webapp.Stylesheet(url)
+	}
+	return
 }
 
 func (pg *Page) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
@@ -83,7 +114,7 @@ func (pg *Page) Render() {
 	header := "<table id='ui_header'><tr>"
 	var menu string
 	if pg.P.Username != "" {
-		header += "<td id='ui_menu'><button class='ui_menu_button' onClick='UIMenuShow(\"ui_menu_content\")'></button></td>"
+		header += "<td id='ui_menu'><button class='ui_menu_button' onClick='UIMenuShow(\"ui_menu_content\")'>&nbsp;</button></td>"
 		if webapp.HasPermission(pg.P.Username, "switch_user") {
 			menu += "<a href='/su'>Switch User</a><hr/>"
 		}

@@ -1,0 +1,7 @@
+div.tabs_container { }
+div.tabs_container table { border-collapse: collapse; }
+div.tabs_container td { color: #8f8f8f; padding: 10px 20px 10px 20px; background-color: #2f2f2f; border-bottom: 2px solid #2f2f2f; border-right: 2px solid #1f1f1f; border-left: 2px solid #1f1f1f; cursor: pointer; }
+div.tabs_container td.active { color: #efefef; background-color: #3f3f3f; font-weight: bold; border-bottom: 2px solid #2661c2; border-right: 2px solid #3f3f3f; border-left: solid #3f3f3f; cursor: auto; }
+div.tabs_container td:hover { color: #dfdfdf; }
+div.tabs_container td.active:hover { background-color: #3f3f3f; }
+div.tabs_container div { padding: 10px; height: 300px; background-color: #3f3f3f; }
