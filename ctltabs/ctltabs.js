@@ -12,7 +12,7 @@ LoadContent: function(td, url) {
     }
     td.classList.toggle("active");
     var container = stdlib.dom.GetParentTag(td, 'div');
-    stdlib.dom.LoadInnerHTML(url + '?id=' + container.id + '&tab=' + td.innerHTML, container.id + '_content');
+    stdlib.dom.LoadInnerHTML(url + '?id=' + container.id + '&tab=' + td.id, container.id + '_content');
   }
 }
 
