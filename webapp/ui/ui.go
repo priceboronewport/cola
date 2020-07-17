@@ -98,6 +98,10 @@ func (pg *Page) Method() string {
 	return pg.R.Method
 }
 
+func (pg *Page) Output(content string) {
+    fmt.Fprintf(pg.W, "%s", content)
+}
+
 func (pg *Page) Param(name string) string {
 	return pg.R.URL.Query().Get(name)
 }
@@ -108,6 +112,10 @@ func (pg *Page) ParseMultipartForm(size int64) {
 
 func (pg *Page) PostParam(name string) string {
 	return pg.R.Form.Get(name)
+}
+
+func (pg *Page) Redirect(url string) {
+	webapp.Redirect(pg.W, pg.R, url)
 }
 
 func (pg *Page) Render() {
@@ -140,15 +148,6 @@ func (pg *Page) RenderError(message string, url string) {
 	pg.RenderInfo(message, url)
 }
 
-func (pg *Page) RenderInfo(message string, url string) {
-	pg.Content = "<div class='ui_modal'><div class='ui_modal_content'>"
-	if url != "" {
-		pg.Content += "<span class='ui_modal_close'><a href='" + url + "'>&nbsp;</a></span>"
-	}
-	pg.Content += "<p>" + message + "</p></div></div>"
-	pg.Render()
-}
-
 func (pg *Page) RenderFile(filename string) {
 	mime_type := webapp.ContentType(filename)
 	fb, err := ioutil.ReadFile(filename)
@@ -162,8 +161,17 @@ func (pg *Page) RenderFile(filename string) {
 	b.WriteTo(pg.W)
 }
 
-func (pg *Page) Redirect(url string) {
-	webapp.Redirect(pg.W, pg.R, url)
+func (pg *Page) RenderInfo(message string, url string) {
+	pg.Content = "<div class='ui_modal'><div class='ui_modal_content'>"
+	if url != "" {
+		pg.Content += "<span class='ui_modal_close'><a href='" + url + "'>&nbsp;</a></span>"
+	}
+	pg.Content += "<p>" + message + "</p></div></div>"
+	pg.Render()
+}
+
+func (pg *Page) RenderQuestion(question string, url_yes string, url_no string) {
+	pg.RenderInfo(question+"<hr/><a href='"+url_yes+"'>Yes</a>&nbsp;<a href='"+url_no+"'>No</a>", "")
 }
 
 func (pg *Page) SessionValuesRead(keys ...string) string {
