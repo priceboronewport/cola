@@ -1,8 +1,8 @@
 package ctltabs
 
 import (
-	"../element"
-	"../webapp/ui"
+	".."
+	"../../../element"
 )
 
 type CtlTabs struct {

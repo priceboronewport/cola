@@ -1,0 +1,97 @@
+#tcal {
+	position: absolute;
+	visibility: hidden;
+	z-index: 100;
+	width: 170px;
+	background-color: #DDDDDD;
+        color: #1f252d;
+	margin-top: 2px;
+	padding: 0 2px 2px 2px;
+	border: 1px solid #999999;
+	-moz-box-shadow: 8px 8px 6px #444444;
+	-webkit-box-shadow: 8px 8px 6px #444444;
+	box-shadow: 8px 8px 6px #444444;
+}
+
+#tcalControls td {
+	border-collapse: collapse;
+	border: 0;
+	padding: 0;
+	width: 16px;
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	cursor: pointer;
+}
+
+#tcalControls th {
+	border-collapse: collapse;
+	border: 0;
+	padding: 0;
+	line-height: 25px;
+	font-size: 10px;
+	text-align: center;
+	font-family: Tahoma, Geneva, sans-serif;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+#tcalGrid th {
+	border-bottom: 1px solid #444444;
+	border-collapse: collapse;
+	padding: 3px 0;
+	text-align: center;
+	font-family: Tahoma, Geneva, sans-serif;
+	font-size: 10px;
+	background-color: #888888;
+	color: white;
+}
+
+#tcalGrid td {
+	border: 0;
+	border-collapse: collapse;
+	padding: 2px 0;
+	text-align: center;
+	font-family: Tahoma, Geneva, sans-serif;
+	width: 14%;
+	font-size: 11px;
+	cursor: pointer;
+        color: #1f252d;
+        background-color: white;
+}		
+
+.tcalInput { 
+  background-size: 20px 20px; 
+  background-image: url('/res/img/tcal/tcal.png'); 
+  background-repeat: no-repeat; 
+  background-position: 100% 50%; 
+  padding-right: 20px; 
+  cursor: pointer; 
+}
+
+.tcalActive { background-size: 20px 20px; background-image: url('/res/img/tcal/tcal.png'); }
+#tcalControls { border-collapse: collapse; border: 0; width: 100%; }
+#tcalPrevYear { 
+  background-image: url('/res/img/tcal/prev_year.png'); 
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
+}
+#tcalPrevMonth { 
+  background-image: url('/res/img/tcal/prev_mon.png'); 
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
+}
+#tcalNextMonth { 
+  background-image: url('/res/img/tcal/next_mon.png'); i
+  background-repeat: no-repeat;
+  background-size: 12px 12px; 
+}
+#tcalNextYear { 
+  background-image: url('/res/img/tcal/next_year.png'); 
+  background-repeat: no-repeat;
+  background-size: 12px 12px; 
+}
+#tcalGrid { border-collapse: collapse; border: 1px solid #444444; width: 100%; }
+#tcalGrid td.tcalOtherMonth { color: #AAAAAA; }
+#tcalGrid td.tcalWeekend { background-color: #CCCCCC; }
+#tcalGrid td.tcalToday { border: 2px solid red; color: red; font-weight: bold; }
+#tcalGrid td.tcalSelected { background-color: #313943; color: #EEEEEE; font-weight: bold; }		

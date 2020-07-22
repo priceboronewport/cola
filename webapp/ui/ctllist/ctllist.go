@@ -1,7 +1,8 @@
 package ctllist
 
 import (
-	"../element"
+	".."
+	"../../../element"
 	"database/sql"
 	"fmt"
 )
@@ -11,11 +12,14 @@ type CtlList struct {
 	Select *element.Element
 }
 
-func New(label string, id string) *CtlList {
+func New(pg *ui.Page, label string, id string) *CtlList {
 	cl := CtlList{Label: element.New("label"), Select: element.New("select")}
+	cl.Label.Attributes["class"] = "ctl"
 	cl.Label.InnerHTML = label
+	cl.Select.Attributes["class"] = "ctl"
 	cl.Select.Attributes["id"] = id
 	cl.Select.Attributes["name"] = id
+	pg.AddStylesheet("/res/css/ctl.css")
 	return &cl
 }
 
@@ -39,6 +43,9 @@ func (cl *CtlList) Load(db *sql.DB, query string) (err error) {
 }
 
 func (cl *CtlList) OuterHTML() string {
+	if cl.Label.InnerHTML == "" {
+		return cl.Select.OuterHTML()
+	}
 	return cl.Label.OuterHTML() + "<br/>" + cl.Select.OuterHTML()
 }
 

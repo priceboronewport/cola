@@ -1,0 +1,11 @@
+input.ctl {
+	color: #afafaf;
+	padding: 6px 10px 6px 10px;
+	background-color: #1f1f1f;
+	border-bottom: 2px solid #7f7f7f;
+}
+
+input.ctl:focus, input.ctl:active {
+	color: #ffffff;
+	border-bottom: 2px solid orange;
+}
