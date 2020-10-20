@@ -55,7 +55,7 @@ func (cl *CtlList) SetSelected(selected string) {
 		if err == nil {
 			html := ""
 			for _, option := range options {
-				if option.Tag == "option" && option.Attributes["value"] == selected {
+				if option.Tag == "option" && ((option.Attributes["value"] == selected) || (option.InnerHTML == selected)) {
 					option.Attributes["selected"] = ""
 					html += option.OuterHTML()
 				} else {

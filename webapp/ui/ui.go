@@ -17,6 +17,7 @@ type Page struct {
 	Head    string
 	header  string
 	Content string
+    Menu    string
 	W       http.ResponseWriter
 	R       *http.Request
 	P       webapp.HandlerParams
@@ -98,6 +99,10 @@ func (pg *Page) Method() string {
 	return pg.R.Method
 }
 
+func (pg *Page) Output(content string) {
+	fmt.Fprintf(pg.W, "%s", content)
+}
+
 func (pg *Page) Param(name string) string {
 	return pg.R.URL.Query().Get(name)
 }
@@ -106,19 +111,19 @@ func (pg *Page) ParseMultipartForm(size int64) {
 	pg.R.ParseMultipartForm(32 << 20)
 }
 
+func (pg *Page) ParseForm() {
+    pg.R.ParseForm()
+}
+
 func (pg *Page) PostParam(name string) string {
 	return pg.R.Form.Get(name)
 }
 
 func (pg *Page) Render() {
 	header := "<table id='ui_header'><tr>"
-	var menu string
 	if pg.P.Username != "" {
 		header += "<td id='ui_menu'><button class='ui_menu_button' onClick='UIMenuShow(\"ui_menu_content\")'>&nbsp;</button></td>"
-		if webapp.HasPermission(pg.P.Username, "switch_user") {
-			menu += "<a href='/su'>Switch User</a><hr/>"
-		}
-		menu += "<a href='/logout'>Log Out</a>"
+		pg.Menu += "<hr/><a href='/logout'>Log Out</a>"
 	}
 	header += pg.header
 	if pg.P.Username != "" {
@@ -132,7 +137,7 @@ func (pg *Page) Render() {
 	header += "</tr></table>"
 	webapp.Render(pg.W, "ui.html", uiParams{Head: template.HTML(pg.Head),
 		Header: template.HTML(header), Content: template.HTML(pg.Content),
-		Menu: template.HTML(menu)})
+		Menu: template.HTML(pg.Menu)})
 }
 
 func (pg *Page) RenderError(message string, url string) {
@@ -160,6 +165,10 @@ func (pg *Page) RenderFile(filename string) {
 	b := bytes.NewBuffer(fb)
 	pg.W.Header().Set("Content-type", mime_type)
 	b.WriteTo(pg.W)
+}
+
+func (pg *Page) RenderQuestion(message string, url_yes string, url_no string) {
+	pg.RenderInfo(message+"<hr/><div style='text-align: right'><a href='"+url_yes+"'>Yes</a>&nbsp;<a href='"+url_no+"'>No</a></div>", "")
 }
 
 func (pg *Page) Redirect(url string) {

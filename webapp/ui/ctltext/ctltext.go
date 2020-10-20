@@ -10,14 +10,19 @@ type CtlText struct {
 	Input *element.Element
 }
 
-func New(pg *ui.Page, label string, id string) *CtlText {
+func New(pg *ui.Page, label string, id string, value string) *CtlText {
 	ctl := CtlText{Label: element.New("label"), Input: element.New("input")}
 	ctl.Label.Attributes["class"] = "ctl"
 	ctl.Label.InnerHTML = label
 	ctl.Input.Attributes["class"] = "ctl"
-	ctl.Input.Attributes["id"] = id
-	ctl.Input.Attributes["name"] = id
 	ctl.Input.Attributes["type"] = "text"
+    if id != "" {
+	  ctl.Input.Attributes["id"] = id
+	  ctl.Input.Attributes["name"] = id
+    }
+    if value != "" {
+      ctl.Input.Attributes["value"] = value
+    }
 	pg.AddStylesheet("/res/css/ctl.css")
 	return &ctl
 }

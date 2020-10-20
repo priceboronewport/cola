@@ -171,11 +171,11 @@ func ListenAndServe(config_path string) {
 		if err != nil {
 			panic(err)
 		}
+		defer DB.Close()
 		err = DB.Ping()
 		if err != nil {
 			panic(err)
 		}
-		defer DB.Close()
 	}
 	fmt.Printf("Listening...\n")
 	http.HandleFunc("/", Handler)

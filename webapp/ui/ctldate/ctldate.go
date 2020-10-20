@@ -10,13 +10,18 @@ type CtlDate struct {
 	Input *element.Element
 }
 
-func New(pg *ui.Page, label string, id string) *CtlDate {
+func New(pg *ui.Page, label string, id string, value string) *CtlDate {
 	ctl := CtlDate{Label: element.New("label"), Input: element.New("input")}
 	ctl.Label.Attributes["class"] = "ctl"
 	ctl.Label.InnerHTML = label
 	ctl.Input.Attributes["class"] = "ctl tcal"
-	ctl.Input.Attributes["id"] = id
-	ctl.Input.Attributes["name"] = id
+    if id != "" {
+	  ctl.Input.Attributes["id"] = id
+	  ctl.Input.Attributes["name"] = id
+    }
+    if value != "" {
+      ctl.Input.Attributes["value"] = value
+    }
 	ctl.Input.Attributes["type"] = "text"
 	ctl.Input.Attributes["size"] = "10"
 	ctl.Input.Attributes["maxlength"] = "10"
