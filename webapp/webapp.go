@@ -9,18 +9,17 @@ package webapp
 
 import (
 	"../filestore"
+	"../logger"
 	"bytes"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"html"
 	"html/template"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -60,7 +59,7 @@ var sessions DataStore
 var session_values DataStore
 var handlers map[string]HandlerFunc
 var require_auths map[string]bool
-var Config DataStore
+var Config *filestore.FileStore
 var data_path string
 var permissions DataStore
 var user_roles DataStore
@@ -68,13 +67,14 @@ var user_roles DataStore
 const NullUser = "_"
 
 func ConfigFilename(config_path string) string {
+	log_prefix := "webapp.ConfigFilename()"
 	_, exe_filename := filepath.Split(os.Args[0])
 	extension := filepath.Ext(os.Args[0])
 	result := config_path + exe_filename + ".conf"
 	if extension != "" {
 		result = config_path + exe_filename[0:len(exe_filename)-len(extension)]
 	}
-	fmt.Printf("Configuration: %s\n", result)
+	logger.Informational(log_prefix, config_path, result)
 	return result
 }
 
@@ -145,39 +145,45 @@ func GetSession(w http.ResponseWriter, r *http.Request) string {
 }
 
 func ListenAndServe(config_path string) {
+	config_filename := ConfigFilename(config_path)
+	Config = filestore.New(config_filename)
+	logger.Init("./conf/logger.conf")
+	log_prefix := "webapp.ListenAndServe()"
+	logger.Notice(log_prefix, "Starting", "config_filename="+config_filename)
 	if len(require_auths) > 0 {
 		if !HandlerExists("", "/login") {
+			logger.Notice(log_prefix, "Installing default /login handler")
 			Register("", "/login", LoginHandler, false)
 		}
 		if !HandlerExists("", "/logout") {
+			logger.Notice(log_prefix, "Installing default /logout handler")
 			Register("", "/logout", LogoutHandler, false)
 		}
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
-	Config = filestore.New(ConfigFilename(config_path))
 	data_path = Config.Read("data_path", "./data/")
 	sessions = filestore.New(data_path + "sessions.fs")
 	session_values = filestore.New(data_path + "session_values.fs")
 	permissions = filestore.New(data_path + "permissions.fs")
 	user_roles = filestore.New(data_path + "user_roles.fs")
 	if _, err := os.Stat(data_path + "sessions.fs"); os.IsNotExist(err) {
-		panic(errors.New(data_path + "sessions.fs missing"))
+		logger.Emergency(log_prefix, data_path+"sessions.fs missing")
 	}
 	db_type := Config.Read("db_type")
 	if db_type != "" {
-		fmt.Printf("Connecting to database...\n")
+		logger.Notice(log_prefix, "Connecting to database", db_type)
 		var err error
-		DB, err = sql.Open(db_type, Config.Read("db_connect"))
+		db_connect := Config.Read("db_connect")
+		DB, err = sql.Open(db_type, db_connect)
 		if err != nil {
-			panic(err)
+			logger.Emergency(log_prefix, "Database Connect Failed", err.Error(), db_type, db_connect)
 		}
 		defer DB.Close()
 		err = DB.Ping()
 		if err != nil {
-			panic(err)
+			logger.Emergency(log_prefix, "Database Ping Failed", err.Error(), db_type, db_connect)
 		}
 	}
-	fmt.Printf("Listening...\n")
 	http.HandleFunc("/", Handler)
 	address := Config.Read("address")
 	tls_address := Config.Read("tls_address")
@@ -186,30 +192,47 @@ func ListenAndServe(config_path string) {
 		tls_key := Config.Read("tls_key")
 		if address != "" {
 			go func() {
-				fmt.Printf("Listening TLS...\n")
+				logger.Notice(log_prefix, "Listening TLS", tls_address, tls_cert, tls_key)
 				err := http.ListenAndServeTLS(tls_address, tls_cert, tls_key, nil)
-				log.Fatal(err)
+				logger.Emergency(log_prefix, "http.ListenAndServeTLS()", err.Error())
 			}()
 		} else {
+			logger.Notice(log_prefix, "Listening TLS", tls_address, tls_cert, tls_key)
 			err := http.ListenAndServeTLS(tls_address, tls_cert, tls_key, nil)
-			log.Fatal(err)
+			logger.Emergency(log_prefix, "http.ListenAndServeTLS()", err.Error())
 		}
 	}
 	if address != "" {
-		err := http.ListenAndServe(Config.Read("address"), nil)
-		log.Fatal(err)
+		logger.Notice(log_prefix, "Listening", address)
+		err := http.ListenAndServe(address, nil)
+		logger.Emergency(log_prefix, "http.ListenAndServe()", err.Error())
 	}
 }
 
 func LogError(err error, source string) {
 	if err != nil {
-		log.Printf(" ** ERROR: %s: %s: %s\n", source, err.Error())
+		logger.Error(source, err.Error())
 	}
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
+	log_prefix := "webapp.Handler()"
+	logger.Informational(log_prefix, "Request From: "+r.RemoteAddr, "For: "+r.Host, r.URL.String())
+	require_host := Config.Read("require_host")
+	if require_host != "" && r.Host != require_host {
+		url := "http"
+		if r.TLS != nil {
+			url += "s"
+		}
+		url += "://" + require_host + r.URL.String()
+		logger.Notice(log_prefix, "Invalid Host", r.Host, "Redirect:", url)
+		Redirect(w, r, url)
+		return
+	}
 	if r.TLS == nil && Config.Read("require_tls:"+r.Host) != "" {
-		Redirect(w, r, "https://"+r.Host+r.URL.String())
+		url := "https://" + r.Host + r.URL.String()
+		logger.Notice(log_prefix, "TLS Required. Redirect", url)
+		Redirect(w, r, url)
 		return
 	}
 	alias := Config.Read("alias:" + r.Host)
@@ -220,6 +243,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	if username == NullUser {
 		username = ""
 	}
+	logger.Informational(log_prefix, "alias="+alias, "instance="+instance, "session="+session, "username="+username)
 	if handlers != nil {
 		rurl := r.URL.String()
 		var candidate_f HandlerFunc
@@ -237,27 +261,27 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			}
 			if (len(rurl) >= len(branch)) && (rurl[:len(branch)] == branch) && ((r.Host == domain) || (domain == "") || (alias == domain)) {
 				if len(branch) > candidate_l {
+					logger.Informational(log_prefix, "Handler Selected", "Domain="+domain, "Branch="+branch)
 					candidate_f = f
 					candidate_l = len(branch)
 				}
 			}
 		}
-		if alias == "" {
-			log.Printf("[%s] [%s] [%s] [%s]\n", username, r.RemoteAddr, r.Host, rurl)
-		} else {
-			log.Printf("[%s] [%s] [%s->%s] [%s]\n", username, r.RemoteAddr, r.Host, alias, rurl)
-		}
 		if candidate_f != nil {
 			if require_auths[fmt.Sprintf("%p", candidate_f)] && username == "" {
-				Redirect(w, r, "/login?return="+url.QueryEscape(rurl))
+				url := "/login?return=" + url.QueryEscape(rurl)
+				logger.Notice(log_prefix, "Authentication Required.  Redirect", url)
+				Redirect(w, r, url)
 				return
 			}
 			candidate_f(w, r, HandlerParams{Session: session, Instance: instance, Username: username})
 			return
 		} else {
-			log.Printf("webapp.Handler: Ignored: [%s]\n", r.URL.String())
+			logger.Warning(log_prefix, "Ignored", r.URL.String())
 			return
 		}
+	} else {
+		logger.Warning(log_prefix, "No handlers")
 	}
 }
 
@@ -280,21 +304,25 @@ func HandlerExists(query_domain string, query_branch string) bool {
 }
 
 func HasPermission(username string, permission string) bool {
+	log_prefix := "webapp.HasPermission()"
+    logger.Debug(log_prefix, "username:", username, "permission:", permission)
 	roles := strings.Split(permissions.Read(permission), ",")
+    logger.Debug(log_prefix, "roles", permissions.Read(permission))
 	if len(roles) < 1 {
 		permissions.Write(permission, "admin")
 		roles = append(roles, "admin")
 	}
 	ur := strings.Split(user_roles.Read(username), ",")
+    logger.Debug(log_prefix, "users", user_roles.Read(username))
 	for _, r := range roles {
 		for _, c := range ur {
 			if c == r {
-				log.Printf("Permission Granted: [%s] for [%s] through [%s]\n", username, permission, r)
+				logger.Debug(log_prefix, "Permission Granted", "permission="+permission, "username="+username, "role="+r)
 				return true
 			}
 		}
 	}
-	log.Printf("Permission Denied: [%s] for [%s]\n", username, permission)
+	logger.Debug(log_prefix, "Permission Denied", "permission="+permission, "username="+username)
 	return false
 }
 
@@ -315,6 +343,7 @@ type LoginParams struct {
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
+	log_prefix := "webapp.LoginHandler()"
 	r.ParseForm()
 	action := r.Form.Get("action")
 	if action == "Login" {
@@ -342,10 +371,10 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
 		if password_rec[0] == hash && hash != "" && password != "" {
 			sessions.Write(p.Session, username)
 			Redirect(w, r, return_url)
-			log.Printf("[%s] Login\n", username)
+			logger.Notice(log_prefix, "Login", username)
 			return
 		}
-		log.Printf("[%s] Login Failed\n", username)
+		logger.Error(log_prefix, "Login Failed", username)
 		Render(w, "login.html", LoginParams{ReturnURL: return_url, ErrorMessage: "Login Failed"})
 	} else {
 		return_url := IfEmpty(r.URL.Query().Get("return"), "/")
@@ -380,16 +409,17 @@ func Trunc(s string, d string) string {
 }
 
 func Query(sql string) (string, error) {
+	log_prefix := "webapp.Query()"
 	var result string
-	r, err := DB.Query(sql)
-	LogError(err, "webapp.Query: "+sql)
+	rows, err := DB.Query(sql)
 	if err == nil {
-		defer r.Close()
-		r.Next()
-		err = r.Scan(&result)
+		defer rows.Close()
+		if rows.Next() {
+			err = rows.Scan(&result)
+		}
 	}
 	if err != nil {
-		log.Printf(" ** ERROR: cola.Query: %s on %s\n", err.Error(), sql)
+		logger.Error(log_prefix, err.Error(), sql)
 		return "", err
 	}
 	return result, nil
@@ -437,14 +467,15 @@ func Register(domain string, branch string, f HandlerFunc, require_auth bool) {
 }
 
 func Render(w http.ResponseWriter, template_filename string, render_params interface{}) {
+	log_prefix := "webapp.Render()"
 	t, err := template.ParseFiles(Config.Read("template_path", "./templates/") + template_filename)
 	if t != nil {
 		err = t.Execute(w, render_params)
 		if err != nil {
-			log.Printf("webapp.Render.template.Execute: %s\n", err.Error())
+			logger.Critical(log_prefix, template_filename, "template.Execute", err.Error())
 		}
 	} else {
-		log.Printf("webapp.Render.template.ParseFiles: %s\n", err.Error())
+		logger.Critical(log_prefix, template_filename, "template.ParseFiles", err.Error())
 	}
 }
 
@@ -586,6 +617,7 @@ func SessionValuesWrite(p HandlerParams, key string, value string) (err error) {
 }
 
 func StaticHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
+	log_prefix := "webapp.StaticHandler()"
 	document_root := DocumentRoot(r.Host)
 	filename := Trunc(r.URL.String()[1:], "?")
 	if filename == "" {
@@ -594,11 +626,12 @@ func StaticHandler(w http.ResponseWriter, r *http.Request, p HandlerParams) {
 		filename = document_root + filename
 	}
 	mime_type := ContentType(filename)
+	logger.Debug(log_prefix, "filename="+filename, "mime_type="+mime_type)
 	f, err := ioutil.ReadFile(filename)
 	if (err != nil) || (mime_type == "") {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, "Not Found")
-		log.Printf("webapp.StaticHandler: 404 - Not Found: [%s]\n", filename)
+		logger.Error(log_prefix, "404 - Not Found", filename)
 		return
 	}
 	b := bytes.NewBuffer(f)

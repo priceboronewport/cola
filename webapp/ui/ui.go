@@ -3,12 +3,12 @@ package ui
 import (
 	".."
 	"../../element"
+	"../../logger"
 	"bytes"
 	"fmt"
 	"html"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 )
@@ -17,7 +17,7 @@ type Page struct {
 	Head    string
 	header  string
 	Content string
-    Menu    string
+	Menu    string
 	W       http.ResponseWriter
 	R       *http.Request
 	P       webapp.HandlerParams
@@ -112,7 +112,7 @@ func (pg *Page) ParseMultipartForm(size int64) {
 }
 
 func (pg *Page) ParseForm() {
-    pg.R.ParseForm()
+	pg.R.ParseForm()
 }
 
 func (pg *Page) PostParam(name string) string {
@@ -141,7 +141,7 @@ func (pg *Page) Render() {
 }
 
 func (pg *Page) RenderError(message string, url string) {
-	log.Printf(" ** ERROR: %s\n", message)
+	logger.Error("ui.RenderError()", message)
 	pg.RenderInfo(message, url)
 }
 
