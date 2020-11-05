@@ -334,7 +334,7 @@ func IfEmpty(str string, defstr string) string {
 }
 
 func Icon(url string) string {
-	return "<link rel='icon' href='" + url + "'/>"
+	return "<link rel='icon' href='" + url + "'/><link rel='apple-touch-icon' href='" + url + "'/>"
 }
 
 type LoginParams struct {
