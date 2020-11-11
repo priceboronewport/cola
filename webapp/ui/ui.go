@@ -11,6 +11,8 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 type Page struct {
@@ -105,6 +107,16 @@ func (pg *Page) Output(content string) {
 
 func (pg *Page) Param(name string) string {
 	return pg.R.URL.Query().Get(name)
+}
+
+func (pg *Page) ParamInt(name string) (value int) {
+	value, _ = strconv.Atoi(pg.R.URL.Query().Get(name))
+	return
+}
+
+func (pg *Page) ParamNum(name string) (value float64) {
+	value, _ = strconv.ParseFloat(strings.ReplaceAll(pg.R.URL.Query().Get(name), ",", ""), 64)
+	return
 }
 
 func (pg *Page) ParseMultipartForm(size int64) {
