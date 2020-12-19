@@ -10,7 +10,7 @@ type CtlText struct {
 	Input *element.Element
 }
 
-func New(pg *ui.Page, label string, id string) *CtlText {
+func New(pg *ui.Page, label string, id string, value string) *CtlText {
 	ctl := CtlText{Label: element.New("label"), Input: element.New("input")}
 	ctl.Label.Attributes["class"] = "ctl"
 	ctl.Label.InnerHTML = label
@@ -23,6 +23,9 @@ func New(pg *ui.Page, label string, id string) *CtlText {
 	ctl.Input.Attributes["type"] = "text"
 	pg.AddStylesheet("/res/css/ctl.css")
 	pg.AddScript("/res/js/ctl.js")
+	if value != "" {
+		ctl.Input.Attributes["value"] = value
+	}
 	return &ctl
 }
 

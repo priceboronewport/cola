@@ -63,6 +63,7 @@ var Config *filestore.FileStore
 var data_path string
 var permissions DataStore
 var user_roles DataStore
+var user_values DataStore
 
 const NullUser = "_"
 
@@ -166,6 +167,7 @@ func ListenAndServe(config_path string) {
 	session_values = filestore.New(data_path + "session_values.fs")
 	permissions = filestore.New(data_path + "permissions.fs")
 	user_roles = filestore.New(data_path + "user_roles.fs")
+	user_values = filestore.New(data_path + "user_values.fs")
 	if _, err := os.Stat(data_path + "sessions.fs"); os.IsNotExist(err) {
 		logger.Emergency(log_prefix, data_path+"sessions.fs missing")
 	}
@@ -305,15 +307,15 @@ func HandlerExists(query_domain string, query_branch string) bool {
 
 func HasPermission(username string, permission string) bool {
 	log_prefix := "webapp.HasPermission()"
-    logger.Debug(log_prefix, "username:", username, "permission:", permission)
+	logger.Debug(log_prefix, "username:", username, "permission:", permission)
 	roles := strings.Split(permissions.Read(permission), ",")
-    logger.Debug(log_prefix, "roles", permissions.Read(permission))
+	logger.Debug(log_prefix, "roles", permissions.Read(permission))
 	if len(roles) < 1 {
 		permissions.Write(permission, "admin")
 		roles = append(roles, "admin")
 	}
 	ur := strings.Split(user_roles.Read(username), ",")
-    logger.Debug(log_prefix, "users", user_roles.Read(username))
+	logger.Debug(log_prefix, "users", user_roles.Read(username))
 	for _, r := range roles {
 		for _, c := range ur {
 			if c == r {
@@ -335,6 +337,35 @@ func IfEmpty(str string, defstr string) string {
 
 func Icon(url string) string {
 	return "<link rel='icon' href='" + url + "'/><link rel='apple-touch-icon' href='" + url + "'/>"
+}
+
+func InstanceValueImport(p HandlerParams, key string) (err error) {
+	return InstanceValueWrite(key, UserValuesRead(p, key))
+}
+
+func InstanceValueRead(keys ...string) (result string) {
+	if len(keys) > 0 {
+		query := fmt.Sprintf("select @%s", keys[0])
+		rows, err := DB.Query(query)
+		LogError(err, "webapp.InstanceValueRead: "+query)
+		if err == nil {
+			defer rows.Close()
+			if rows.Next() {
+				rows.Scan(&result)
+			}
+		}
+		if len(keys) > 1 && result == "" {
+			result = keys[1]
+		}
+	}
+	return
+}
+
+func InstanceValueWrite(key string, value string) (err error) {
+	sql := fmt.Sprintf("set @%s=?", key)
+	_, err = DB.Exec(sql, value)
+	LogError(err, "webapp.InstanceValueWrite: "+sql)
+	return
 }
 
 type LoginParams struct {
@@ -514,8 +545,8 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 				result += "<td class='filter'>"
 				if first_col {
 					result += "<div style='white-space: nowrap; text-align: center;'>"
-					result += "<button class='apply hint' onClick='return tfltr.Apply(this)'><span class='hinttext'>Apply Filter</span></button>"
-					result += "<button class='reset hint' onClick='return tfltr.Reset(this)'><span class='hinttext'>Clear Filter</span></button>"
+					result += "<button class='apply ui_hint' onClick='return tfltr.Apply(this)'><span class='ui_hinttext'>Apply Filter</span></button>"
+					result += "<button class='reset ui_hint' onClick='return tfltr.Reset(this)'><span class='ui_hinttext'>Clear Filter</span></button>"
 					result += "</div>"
 					first_col = false
 				}
@@ -667,4 +698,19 @@ func User(username string) Record {
 		}
 	}
 	return result
+}
+
+func UserValuesRead(p HandlerParams, keys ...string) (result string) {
+	if len(keys) > 0 {
+		result = user_values.Read(p.Username + ":" + keys[0])
+		if len(keys) > 1 && result == "" {
+			result = keys[1]
+		}
+	}
+	return
+}
+
+func UserValuesWrite(p HandlerParams, key string, value string) (err error) {
+	user_values.Write(p.Username+":"+key, value)
+	return nil
 }
