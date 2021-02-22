@@ -47,6 +47,7 @@ type RenderTableParams struct {
 	ColClasses map[string]string
 	ColLinks   map[string]string
 	FilterCols string
+	FilterName string
 	HeaderRows int
 	HiddenCols string
 	HtmlCols   string
@@ -328,6 +329,27 @@ func HasPermission(username string, permission string) bool {
 	return false
 }
 
+func Break(str string, break_after int, break_str string) (html string) {
+	if len(str) <= break_after {
+		html = str
+	} else {
+		html = str[:break_after]
+		l := break_after
+		i := break_after
+		for i < len(str) {
+			if str[i] <= ' ' && (l >= break_after) {
+				html += break_str
+				l = 0
+			} else {
+				html += str[i : i+1]
+			}
+			i += 1
+			l += 1
+		}
+	}
+	return
+}
+
 func IfEmpty(str string, defstr string) string {
 	if str == "" {
 		return defstr
@@ -340,7 +362,7 @@ func Icon(url string) string {
 }
 
 func InstanceValueImport(p HandlerParams, key string) (err error) {
-	return InstanceValueWrite(key, UserValuesRead(p, key))
+	return InstanceValueWrite(key, UserValuesRead(p.Username, key))
 }
 
 func InstanceValueRead(keys ...string) (result string) {
@@ -432,13 +454,6 @@ func Protocol(r *http.Request) (protocol string) {
 	return
 }
 
-func Trunc(s string, d string) string {
-	if idx := strings.Index(s, d); idx != -1 {
-		return s[:idx]
-	}
-	return s
-}
-
 func Query(sql string) (string, error) {
 	log_prefix := "webapp.Query()"
 	var result string
@@ -516,7 +531,7 @@ func RenderIncrementalSearch(id, width, height string) (html string) {
 	return
 }
 
-func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
+func RenderTable(username string, id string, rows *sql.Rows, p RenderTableParams) string {
 	hidden_cols := strings.Split(p.HiddenCols, ",")
 	filter_cols := strings.Split(p.FilterCols, ",")
 	html_cols := strings.Split(p.HtmlCols, ",")
@@ -537,21 +552,26 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 		}
 	}
 	result += "</tr>"
+	hook_apply := false
 	if len(filter_cols) > 1 {
 		result += "<tr>"
 		first_col := true
-		for _, name := range columns {
+		for i, name := range columns {
 			if !Contains(hidden_cols, name) {
 				result += "<td class='filter'>"
 				if first_col {
 					result += "<div style='white-space: nowrap; text-align: center;'>"
-					result += "<button class='apply ui_hint' onClick='return tfltr.Apply(this)'><span class='ui_hinttext'>Apply Filter</span></button>"
+					result += "<button class='apply ui_hint' id='" + id + "_apply' onClick='return tfltr.Apply(this)'><span class='ui_hinttext'>Apply Filter</span></button>"
 					result += "<button class='reset ui_hint' onClick='return tfltr.Reset(this)'><span class='ui_hinttext'>Clear Filter</span></button>"
 					result += "</div>"
 					first_col = false
 				}
 				if Contains(filter_cols, name) {
-					result += "<input onKeyPress='return tfltr.KeyPress(this,event)' type='text' size='2'/>"
+					value := UserValuesRead(username, fmt.Sprintf("tfltr.%s.%d", id, i))
+					if value != "" {
+						hook_apply = true
+					}
+					result += "<input onKeyPress='return tfltr.KeyPress(this,event)' type='text' size='2' value='" + html.EscapeString(value) + "'/>"
 				}
 				result += "</td>"
 			}
@@ -598,14 +618,14 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 				}
 				result += ">"
 				if p.ColLinks != nil && p.ColLinks[name] != "" && row_count > p.HeaderRows {
-					url := strings.Replace(p.ColLinks[name], "{}", s, -1)
+					link_url := strings.Replace(p.ColLinks[name], "{}", url.QueryEscape(s), -1)
 					for j := 0; j < i; j++ {
-						url = strings.Replace(url, "{"+strconv.Itoa(j)+"}", col_values[j], -1)
+						link_url = strings.Replace(link_url, "{"+strconv.Itoa(j)+"}", url.QueryEscape(col_values[j]), -1)
 					}
 					if (len(s) > 9) && (s[2:3] == "/") {
-						result += "<!-- " + html.EscapeString(s[6:10]+s[0:2]+s[3:5]) + " --><a href='" + url + "'>"
+						result += "<!-- " + html.EscapeString(s[6:10]+s[0:2]+s[3:5]) + " --><a href='" + link_url + "'>"
 					} else {
-						result += "<!-- " + html.EscapeString(s) + " --><a href='" + url + "'>"
+						result += "<!-- " + html.EscapeString(s) + " --><a href='" + link_url + "'>"
 					}
 				}
 				if Contains(html_cols, name) {
@@ -625,6 +645,9 @@ func RenderTable(id string, rows *sql.Rows, p RenderTableParams) string {
 		result += "</thead>"
 	}
 	result += "</tbody></table>"
+	if hook_apply {
+		result += "<script type='text/javascript'>document.getElementById(\"" + id + "_apply\").click();</script>"
+	}
 	return result
 }
 
@@ -674,6 +697,13 @@ func Stylesheet(url string) string {
 	return "<link href='" + url + "' type='text/css' rel='stylesheet'/>"
 }
 
+func Trunc(s string, d string) string {
+	if idx := strings.Index(s, d); idx != -1 {
+		return s[:idx]
+	}
+	return s
+}
+
 func UrlPath(r *http.Request, index int) string {
 	url_path := strings.Split(strings.Split(r.URL.String()[1:], "?")[0], "/")
 	if len(url_path) > index {
@@ -700,9 +730,9 @@ func User(username string) Record {
 	return result
 }
 
-func UserValuesRead(p HandlerParams, keys ...string) (result string) {
+func UserValuesRead(username string, keys ...string) (result string) {
 	if len(keys) > 0 {
-		result = user_values.Read(p.Username + ":" + keys[0])
+		result = user_values.Read(username + ":" + keys[0])
 		if len(keys) > 1 && result == "" {
 			result = keys[1]
 		}
@@ -710,7 +740,7 @@ func UserValuesRead(p HandlerParams, keys ...string) (result string) {
 	return
 }
 
-func UserValuesWrite(p HandlerParams, key string, value string) (err error) {
-	user_values.Write(p.Username+":"+key, value)
+func UserValuesWrite(username string, key string, value string) (err error) {
+	user_values.Write(username+":"+key, value)
 	return nil
 }

@@ -1,8 +1,8 @@
 package tempfile
 
 import (
+	"fmt"
 	"os"
-    "fmt"
 )
 
 type TempFile struct {

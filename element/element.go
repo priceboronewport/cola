@@ -56,7 +56,7 @@ func Parse(html string) (elements []Element, err error) {
 								return
 							}
 							e := Element{Tag: ParseTag(current_tag), InnerHTML: inner_html, Attributes: a}
-                            inner_html = ""
+							inner_html = ""
 							elements = append(elements, e)
 						} else {
 							err = errors.New(fmt.Sprintf("Mismatched end tag '%s' @ %d", str, i))
@@ -143,7 +143,7 @@ func ParseAttributes(html string) (attributes map[string]string, err error) {
 				attributes[a] = v
 				a = ""
 				v = ""
-                instr = ' '
+				instr = ' '
 				state = 0
 			} else {
 				v += string(ch)
