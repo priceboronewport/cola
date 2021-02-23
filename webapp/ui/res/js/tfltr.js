@@ -199,7 +199,7 @@ var tfltr = {
   }, // HideRows
 
   Store: function(name, value) {
-    console.log('name='+name+' value='+value);
+    stdlib.dom.Ajax('GET', '?ajax=tfltr&name=' + encodeURI(name) + '&value=' + encodeURI(value));
   }, // Store
 
   KeyPress: function(input, event) {

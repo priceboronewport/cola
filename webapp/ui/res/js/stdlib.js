@@ -6,6 +6,7 @@
   Javascript library of usefull utility functions:
 
   DOM:
+    stdlib.dom.Ajax(method, url)
     stdlib.dom.GetChildNumber(pElement) 
     stdlib.dom.GetParentTag(pElement, pTag)
     stdlib.dom.LoadInnerHTML(url, id)
@@ -172,6 +173,16 @@ class: {
 }, // class
 
 dom: {
+
+  Ajax: function(method, url) {
+    try {
+      var http = new XMLHttpRequest();
+      http.open(method, url, true);
+      http.send(null);
+    } catch(err) {
+      console.log('stdlib.dom.LoadInnerHTML: ' + err);
+    }
+  },
 
   GetChildNumber: function(pElement) {
     var parent = pElement.parentNode;

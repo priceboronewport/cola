@@ -3,8 +3,8 @@ package ctllist
 import (
 	".."
 	"../../../element"
+	"../../../logger"
 	"database/sql"
-	"fmt"
 )
 
 type CtlList struct {
@@ -28,6 +28,7 @@ func (cl *CtlList) Add(label string, value string) {
 }
 
 func (cl *CtlList) Load(db *sql.DB, query string) (err error) {
+	log_prefix := "ctllist.Load()"
 	rows, err := db.Query(query)
 	if err == nil {
 		defer rows.Close()
@@ -37,7 +38,7 @@ func (cl *CtlList) Load(db *sql.DB, query string) (err error) {
 			cl.Add(label, value)
 		}
 	} else {
-		fmt.Printf(" ** ERROR: %s\n", err.Error())
+		logger.Error(log_prefix, err.Error(), query)
 	}
 	return
 }
