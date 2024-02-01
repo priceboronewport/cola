@@ -1,7 +1,7 @@
 package incsearch
 
 import (
-	"../../element"
+	"github.com/priceboronewport/cola/element"
 )
 
 type IncSearch struct {
