@@ -2,7 +2,7 @@ package ctlnotes
 
 import (
 	"fmt"
-	"github.com/priceboronewport/cola/elementw"
+	"github.com/priceboronewport/cola/element"
 	"github.com/priceboronewport/cola/webapp/ui"
 )
 
