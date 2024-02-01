@@ -1,7 +1,7 @@
 package email
 
 import (
-	"../tempfile"
+	"github.com/priceboronewport/cola/tempfile"
 	"bytes"
 	"errors"
 	"fmt"

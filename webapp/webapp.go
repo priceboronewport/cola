@@ -8,8 +8,8 @@
 package webapp
 
 import (
-	"../filestore"
-	"../logger"
+	"github.com/priceboronewport/cola/filestore"
+	"github.com/priceboronewport/cola/logger"
 	"bytes"
 	"crypto/sha256"
 	"database/sql"

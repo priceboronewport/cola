@@ -1,9 +1,9 @@
 package ui
 
 import (
-	".."
-	"../../element"
-	"../../logger"
+	"github.com/priceboronewport/cola/webapp"
+	"github.com/priceboronewport/cola/element"
+	"github.com/priceboronewport/logger"
 	"bytes"
 	"fmt"
 	"html"

@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"../filestore"
+	"github.com/priceboronewport/cola/filestore"
 	"errors"
 	"fmt"
 	"log"

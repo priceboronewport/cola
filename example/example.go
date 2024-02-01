@@ -8,7 +8,7 @@
 package main
 
 import (
-	"../webapp"
+	"github.com/priceboronewport/cola/webapp"
 	"html"
 	"html/template"
 	"net/http"
