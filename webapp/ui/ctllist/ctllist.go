@@ -1,10 +1,10 @@
 package ctllist
 
 import (
-	".."
-	"../../../element"
-	"../../../logger"
 	"database/sql"
+	"github.com/priceboronewport/cola/element"
+	"github.com/priceboronewport/cola/logger"
+	"github.com/priceboronewport/cola/webapp/ui"
 )
 
 type CtlList struct {

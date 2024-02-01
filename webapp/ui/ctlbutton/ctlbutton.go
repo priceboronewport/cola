@@ -1,8 +1,8 @@
 package ctlbutton
 
 import (
-	".."
-	"../../../element"
+	"github.com/priceboronewport/cola/webapp/ui"
+	"github.com/priceboronewport/cola/element"
 )
 
 func New(pg *ui.Page, hint string, class string, url string) *element.Element {

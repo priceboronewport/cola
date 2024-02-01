@@ -1,9 +1,9 @@
 package ctlnotes
 
 import (
-	".."
-	"../../../element"
 	"fmt"
+	"github.com/priceboronewport/cola/elementw"
+	"github.com/priceboronewport/cola/webapp/ui"
 )
 
 type CtlNotes struct {
