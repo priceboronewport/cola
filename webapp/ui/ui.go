@@ -1,11 +1,11 @@
 package ui
 
 import (
-	"github.com/priceboronewport/cola/webapp"
-	"github.com/priceboronewport/cola/element"
-	"github.com/priceboronewport/logger"
 	"bytes"
 	"fmt"
+	"github.com/priceboronewport/cola/element"
+	"github.com/priceboronewport/cola/webapp"
+	"github.com/priceboronewport/logger"
 	"html"
 	"html/template"
 	"io/ioutil"
