@@ -1,0 +1,14 @@
+github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=
+github.com/go-sql-driver/mysql v1.7.1/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
+github.com/priceboronewport/cola/element v0.0.0-20240201205835-c9df2427ea16 h1:ppcWzbc7bR2/50sidHCZrOj9dfNLaEBcf2KVo0aO8p8=
+github.com/priceboronewport/cola/element v0.0.0-20240201205835-c9df2427ea16/go.mod h1:W89xZLTp4rvK9HAA3HUw5m6fN7WAexJln5ROc7NMkFo=
+github.com/priceboronewport/cola/filestore v0.0.0-20240201203034-f9b0c520369e h1:icK91Dydr8b464hVFn3eHMpmXKSyk674ywq1zjG+K8w=
+github.com/priceboronewport/cola/filestore v0.0.0-20240201203034-f9b0c520369e/go.mod h1:dLs1kgE4QsBgWT2Qsei1Lxqci+LfS5k7wLMFLIt/ERU=
+github.com/priceboronewport/cola/logger v0.0.0-20240201203554-d89a5ebf29eb h1:4okOnizzGsAt1HTwrAHuZXAMzYHNN3KGuo5uulEARa4=
+github.com/priceboronewport/cola/logger v0.0.0-20240201203554-d89a5ebf29eb/go.mod h1:zkGQjhGI9f4cZmH64vbSpic9npuOwpxqjlcmN2k7X28=
+github.com/priceboronewport/cola/webapp v0.0.0-20240201205835-c9df2427ea16 h1:h2aBZ4LRdY1aqfE0bG9pM1Ggt4XFkB92SKH9P50zKF8=
+github.com/priceboronewport/cola/webapp v0.0.0-20240201205835-c9df2427ea16/go.mod h1:/kEjjeCKVCuzaRHELvY1wM7iNrEeMKdrxn9tjg8SyiA=
+github.com/priceboronewport/filestore v0.0.0-20230224185250-89f3509b4e3b h1:ceag8wxo/1lMbA4JdGCPXcm/YTw05DJyKXEwhHSoZY0=
+github.com/priceboronewport/filestore v0.0.0-20230224185250-89f3509b4e3b/go.mod h1:duBH4t4Hl/PAoO5pQkxsmwJ7uhy+lZBS36gu+pssh3I=
+github.com/priceboronewport/logger v0.0.0-20230224201247-facfc7d34356 h1:Ysyu65jz00uXN/Re62W4pFs9TULuRY1kjDNKA4Etblw=
+github.com/priceboronewport/logger v0.0.0-20230224201247-facfc7d34356/go.mod h1:pww6sisR/AFJ/Kl5XLfn82GwcwmQKqxqMGJMn+yQwqI=
